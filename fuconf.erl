@@ -1,6 +1,16 @@
 %% git clone https://github.com/bosky101/fuconf
 %% sudo apt-get install erlang OR brew install erlang
 %% cd fuconf
+
+%% on terminal1
+%% erlc fuconf.erl && erl -s fuconf
+%% > server listening on 8021
+
+%% on terminal 2
+%% erl
+%% > fuconf:client(<<"hello">>)
+%% client_loop got <<"echo hello">>
+
 -module(fuconf).
 
 -compile([export_all]).
@@ -26,7 +36,6 @@ do_something_every_second_daemon()->
     wait_for_a_second(),
     do_something_every_second_daemon().
 
-%% erlc fuconf.erl && erl -s fuconf
 start()->
     spawn(fun()->
                   %listen()
@@ -123,12 +132,13 @@ handler(ListenSocket, Socket) ->
 
 listen_forever_concurrent()->
     {ok,ListenSocket} = gen_tcp:listen(8021,?TCP_OPTS),
+    io:format("~n server listening on 8021~n",[]),
     accept_loop_concurrent(ListenSocket).
 
 accept_loop_concurrent(ListenSocket)->
     case gen_tcp:accept(ListenSocket) of
         {ok,Socket} ->
-            Pid = spawn(?MODULE, handler, [ListenSocket,Socket]),
+            Pid = spawn(fun()-> handler(ListenSocket,Socket) end),
             gen_tcp:controlling_process(Socket, Pid),
             accept_loop_concurrent(ListenSocket);
         {error,Reason} ->
@@ -153,19 +163,19 @@ bar()->
     bar().
 
 get_ok()->
-    foo(),  %% hi, i am self()::<pid>
-    bar(),  %% still in same process
+    baz(10),%% hi, i am self()::<pid>
+    baz(2), %% still in same process
             %% if the last expression if not a function or receive
     ok.     %% the process ends.
 
 run_get_ok()->
     get_ok(). %% returns ok, so the process ends here
 
-bar(0)->       %% this is a guard clause
+baz(0)->       %% this is a guard clause
     ok;        %% process ends when X = 0
-bar(X)->
+baz(X)->
     do_something_with(X),
-    bar(X-1).  %% stayin 'alive
+    baz(X-1).  %% stayin 'alive
 
 do_something_with(X)->
     X.
